@@ -24,7 +24,7 @@ Tasks
 MTQQ
 ----
 
-Dispenser output data topic:
+Dispenser output data topic:  
 `office/sensors/cooler/data`
 
 JSON payload example:
@@ -37,7 +37,7 @@ JSON payload example:
 ```
 
 
-Response topic for settings update:
+Response topic for settings update:  
 `office/sensors/cooler/setting`
 
 Payload example:
@@ -48,7 +48,7 @@ Payload example:
 ```
 
 
-Test topic for connectivity checks, turns internal LED on/off:
+Test topic for connectivity checks, turns internal LED on/off:  
 `office/sensors/cooler/setting/light`
 
 Payload example:
@@ -57,7 +57,7 @@ off
 ```
 
 
-Sets output data update interval:
+Sets output data update interval:  
 `office/sensors/cooler/setting/interval`
 
 Payload example _(30 sec)_:
