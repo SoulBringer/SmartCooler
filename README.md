@@ -11,13 +11,6 @@ Smart Cooler will be able to:
 - send an automatic SMS notification to the water supplier with an order of next batch of water in advance.
 
 
-Team members
-------------
-- andrew.oleksiyuk@eliftech.com
-- mykhailo.koval@eliftech.com
-- taras.tymoshchuk@eliftech.com
-
-
 Tasks
 -----
 - formalize and document required MQTT topics and HTTP endpoints;
@@ -31,3 +24,43 @@ Tasks
 MTQQ
 ----
 
+Dispenser output data topic:
+`office/sensors/cooler/data`
+
+JSON payload example:
+```
+{  
+	"temp1":15,
+	"temp2":15,
+	"weight":650000
+}
+```
+
+
+Response topic for settings update:
+`office/sensors/cooler/setting`
+
+Payload example:
+```
+{
+	"interval":30000
+}
+```
+
+
+Test topic for connectivity checks, turns internal LED on/off:
+`office/sensors/cooler/setting/light`
+
+Payload example:
+```
+off
+```
+
+
+Sets output data update interval:
+`office/sensors/cooler/setting/interval`
+
+Payload example _(30 sec)_:
+```
+30000
+```
