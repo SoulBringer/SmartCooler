@@ -117,3 +117,9 @@ Payload example:
   "weight":"83.64"
 }
 ```
+
+Developer UI:
+```
+https://goo.gl/7aZWHb
+https://s3-eu-west-1.amazonaws.com/smartoffice.eliftech/cooler.html
+```
