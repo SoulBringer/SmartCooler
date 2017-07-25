@@ -13,9 +13,10 @@ Smart Cooler will be able to:
 
 Contents
 --------
-- [Tasks](#Tasks)
-- [MQTT](#MQTT)
-- [Data notes](#Data-notes)
+- [Tasks](#tasks)
+- [MQTT](#mqtt)
+- [Data notes](#data-notes)
+- [Endpoints](#endpoints)
 
 
 Tasks
@@ -98,3 +99,21 @@ Data notes
 - 685000 = 100%
 - 260000 = 0%
 - 241550 = no bottle
+
+
+Endpoints
+---------
+
+Get current state:
+```
+GET https://fkgcx8b7kd.execute-api.eu-west-1.amazonaws.com/prod/getSmartCoolerState
+```
+
+Payload example:
+```
+{
+  "temp1":33,
+  "temp2":0,
+  "weight":"83.64"
+}
+```
