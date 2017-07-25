@@ -11,6 +11,13 @@ Smart Cooler will be able to:
 - send an automatic SMS notification to the water supplier with an order of next batch of water in advance.
 
 
+Contents
+--------
+- [Tasks](#Tasks)
+- [MQTT](#MQTT)
+- [Data notes](#Data-notes)
+
+
 Tasks
 -----
 - formalize and document required MQTT topics and HTTP endpoints;
@@ -21,8 +28,11 @@ Tasks
 - create UI to configure device and view device status;
 
 
-MTQQ
+MQTT
 ----
+
+Local MQTT AWS brigge:  
+`192.168.1.126:1883`
 
 Dispenser output data topic:  
 `office/sensors/cooler/data`
@@ -64,3 +74,27 @@ Payload example _(30 sec)_:
 ```
 30000
 ```
+
+
+Calls immediate update:
+`office/sensors/cooler/setting/refresh'
+
+Payload example:
+```
+```
+
+
+Data notes
+----------
+- Dispenser is empty, no bottle value: `241550`
+- Dispenser is empty, with bottle value: `260000`
+- Dispenser is full, with bottle value: `685000`
+
+- 1kg ~= `22450`
+- empty bottle ~= 0.8kg (should be 0.75kg)
+- full bottle (should be 0.75kg + 19kg) ~= 443390
+- cup ~= `7500` ~= 0.33kg
+
+- 685000 = 100%
+- 260000 = 0%
+- 241550 = no bottle
