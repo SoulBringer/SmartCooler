@@ -6,3 +6,16 @@ This example also requires a few environmental variables from your [Twilio Conso
 * ACCOUNT_SID
 
 Merely create those in the Lambda console for this function and you should be ready.
+
+Test event:
+
+```javascript
+{
+  "To": "+380966852997",
+  "From": "+18635460380",
+  "Body": "test",
+  "Type": "Outgoing"
+}
+```
+
+Notice: we have a whitelist of numbers in trial mode
