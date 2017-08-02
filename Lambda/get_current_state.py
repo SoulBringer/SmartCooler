@@ -18,16 +18,20 @@ def respond(err, res=None):
 def lambda_handler(event, context):
     #print("Received event: " + json.dumps(event, indent=2))
 
-    table = boto3.resource('dynamodb').Table('smart_cooler_state')
-    response = table.get_item(Key={'id': '0'})
-    item = response['Item']['payload']
+    operation = event['httpMethod']
+    if (operation == 'GET'):
+        table = boto3.resource('dynamodb').Table('smart_cooler_state')
+        response = table.get_item(Key={'id': '0'})
+        item = response['Item']['payload']
 
-    #print(item)
+        #print(item)
 
-    response = {
-        'temp1': int(item['temp1']),
-        'temp2': int(item['temp2']),
-        'weight': ('%.2f' % ((float(item['weight']) - event['config']['emptyBottle']) / event['config']['fullBottle'] * 100))
-    }
-    return respond(None, response)
+        response = {
+            'temp1': int(item['temp1']),
+            'temp2': int(item['temp2']),
+            'weight': ('%.2f' % ((float(item['weight']) - 260000) / 425000 * 100))
+        }
+        return respond(None, response)
+
+    return respond(ValueError('Unsupported method "{}"'.format(operation)))
     
