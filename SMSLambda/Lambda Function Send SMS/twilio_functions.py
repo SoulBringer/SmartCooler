@@ -8,20 +8,21 @@ from __future__ import print_function
 
 import os
 from twilio.rest import Client
+import json
 
 
-def send_message(to_number, from_number, message_body, picture_url=""):
+def send_message(message):
     """Wrap the Twilio Python library and send SMS/MMS messages."""
-    auth_token = os.environ['AUTH_TOKEN']
-    account_sid = os.environ['ACCOUNT_SID']
+    auth_token = message['AUTH_TOKEN']
+    account_sid = message['ACCOUNT_SID']
     client = Client(account_sid, auth_token)
 
     message_dict = {}
-    message_dict['to'] = to_number
-    message_dict['from_'] = from_number
-    message_dict['body'] = message_body
-    if picture_url != "":
-        message_dict['media_url'] = picture_url
+    message_dict['to'] = message['To']
+    message_dict['from_'] = message['From']
+    message_dict['body'] = message['Body']
+    if 'Image' in message:
+        message_dict['media_url'] = message['Image']
 
     # Send a SMS or MMS with Twilio!!!
     client.messages.create(**message_dict)
@@ -30,15 +31,15 @@ def send_message(to_number, from_number, message_body, picture_url=""):
 def iot_handler(event, context):
     """Handle incoming messages from AWS IoT."""
     print("Received event: " + str(event))
-    if 'To' not in event or 'From' not in event or 'Body' not in event \
-            or 'Type' not in event or event['Type'] != 'Outgoing':
+    print("Received event message: " + event['Records'][0]['Sns']['Message'])
+
+    message = json.loads(event['Records'][0]['Sns']['Message']);
+
+    if 'To' not in message or 'From' not in message or 'Body' not in message \
+            or 'Type' not in message or message['Type'] != 'Outgoing':
         # Guard against malformed events being sent to us
         return
 
-    picture_url = ""
-    if 'Image' in event:
-        picture_url = event['Image']
-
-    send_message(event['To'], event['From'], event['Body'], picture_url)
+    send_message(message)
 
     return

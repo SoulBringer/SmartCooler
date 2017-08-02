@@ -1,0 +1,15 @@
+{
+  "name": "supervisor-lambda",
+  "version": "1.0.0",
+  "description": "part of smart coller",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Mike Koval",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^2.5.0",
+    "aws-sdk": "^2.94.0"
+  }
+}
