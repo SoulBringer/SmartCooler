@@ -28,28 +28,8 @@ exports.handler = function handler(event, context) {
                 context.fail(e.message);
             });
 
-            var text_msg = JSON.stringify(rec.Sns.Message, null, '  ');
-            try {
-                var msg_data = [];
-                var parsed = JSON.parse(rec.Sns.Message);
-                for (var key in parsed) {
-                    msg_data.push(key + ': ' + parsed[key]);
-                }
-                text_msg = msg_data.join("\n");
-            } catch (e) {
-                console.log(e);
-            }
-
             var params = {
-                attachments: [{
-                    fallback: text_msg,
-                    pretext: rec.Sns.Subject,
-                    color: "#0c40d0",
-                    fields: [{
-                        "value": text_msg,
-                        "short": false
-                    }]
-                }]
+                text: message.message
             };
             req.write(JSON.stringify(params));
 

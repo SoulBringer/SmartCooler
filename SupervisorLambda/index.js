@@ -167,7 +167,7 @@ function sendSmsNotification({ config }, cb) { // send notification to sns
   const sns = new AWS.SNS();
 
   const snsMsg = JSON.stringify({
-    Body: 'Test',
+    Body: config.SMS_MESSAGE,
     Type: 'Outgoing',
     To: config.TWILLIO_PHONE_NUMBER_TO,
     From: config.TWILLIO_PHONE_NUMBER_FROM,
@@ -203,7 +203,8 @@ function sendSlackNotification({ config }, cb) { // send notification to sns
   const sns = new AWS.SNS();
 
   const snsMsg = JSON.stringify({
-    slackUrl: config.SLACK_URL
+    slackUrl: config.SLACK_URL,
+    message: config.SLACK_MESSAGE
   });
 
   let payload = {
@@ -216,7 +217,7 @@ function sendSlackNotification({ config }, cb) { // send notification to sns
   console.log('sending push');
   sns.publish({
     Message: payload,
-    Subject: 'Test',
+    Subject: config.SLACK_MESSAGE,
     MessageStructure: 'json',
     TargetArn: 'arn:aws:sns:eu-west-1:091953829232:slackNotiffication'
   }, (err, data) => {
