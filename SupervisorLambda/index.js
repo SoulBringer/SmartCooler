@@ -100,7 +100,7 @@ function checkState({ config, stateOne, stateTwo }, next) {
   if (waterLvl >= 90 && stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we got new order and put new bottle
     return async.auto({
       refreshStock: cb => refreshStock({ config }, cb),
-      resetSentSmsNotificationFlag: resetSentSmsNotificationFlag,
+      resetSentSmsNotificationFlag,
     }, next);
   }
 
