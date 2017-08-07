@@ -97,35 +97,39 @@ function checkState({ config, stateOne, stateTwo }, next) {
 
   console.log('waterLvl:', waterLvl);
 
+  let routines = {};
+
   if (waterLvl >= 90 && stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we got new order and put new bottle
-    return async.auto({
+    routines = Object.assing({}, routines, {
       refreshStock: cb => refreshStock({ config }, cb),
       resetSentSmsNotificationFlag,
-    }, next);
+    });
   }
 
   if (waterLvl >= 90 && stateTwo.slackNotificationFlag) { // when we put next bottle from stock
-    return async.auto({
+    routines = Object.assing({}, routines, {
       decreaseBottles: cb => decreaseBottles({ stateTwo }, cb),
       resetSentSlackNotificationFlag,
-    }, next);
+    });
   }
 
   if (waterLvl <= config.BOTTLE_LEVEL_TO_NOTIFY_SLACK && !stateTwo.slackNotificationFlag) { // when we need to change bottle
-    return async.auto({
+    routines = Object.assign({}, routines, {
       sendSlackNotification: cb => sendSlackNotification({ config }, cb),
       setSentSlackNotificationFlag: ['sendSlackNotification', (__, cb) => setSentSlackNotificationFlag(cb)],
-    }, next);
+    });
   }
 
   if (waterLvl <= config.BOTTLE_LEVEL_TO_NOTIFY_SMS && !stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we need to order new bottles
-    return async.auto({
+    routines = Object.assign({}, routines, {
       sendSmsNotification: cb => sendSmsNotification({ config }, cb),
       setSentSmsNotificationFlag: ['sendSmsNotification', (__, cb) => setSentSmsNotificationFlag(cb)],
-    }, next);
+    });
   }
 
-  return next();
+  console.log('Routines:', Object.keys(routines));
+
+  return async.auto(routines, next);
 }
 
 function refreshStock({ config }, cb) { // we got order, put one to cooler and put others to stock
