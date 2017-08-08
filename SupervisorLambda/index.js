@@ -1,5 +1,6 @@
 const async = require('async');
-const AWS = require("aws-sdk");
+const AWS = require('aws-sdk');
+const _ = require('lodash');
 
 exports.handler = handler;
 
@@ -100,28 +101,28 @@ function checkState({ config, stateOne, stateTwo }, next) {
   let routines = {};
 
   if (waterLvl >= 90 && stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we got new order and put new bottle
-    routines = Object.assing({}, routines, {
+    routines = _.assign({}, routines, {
       refreshStock: cb => refreshStock({ config }, cb),
       resetSentSmsNotificationFlag,
     });
   }
 
   if (waterLvl >= 90 && stateTwo.slackNotificationFlag) { // when we put next bottle from stock
-    routines = Object.assing({}, routines, {
+    routines = _.assign({}, routines, {
       decreaseBottles: cb => decreaseBottles({ stateTwo }, cb),
       resetSentSlackNotificationFlag,
     });
   }
 
   if (waterLvl <= config.BOTTLE_LEVEL_TO_NOTIFY_SLACK && !stateTwo.slackNotificationFlag) { // when we need to change bottle
-    routines = Object.assign({}, routines, {
+    routines = _.assign({}, routines, {
       sendSlackNotification: cb => sendSlackNotification({ config }, cb),
       setSentSlackNotificationFlag: ['sendSlackNotification', (__, cb) => setSentSlackNotificationFlag(cb)],
     });
   }
 
   if (waterLvl <= config.BOTTLE_LEVEL_TO_NOTIFY_SMS && !stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we need to order new bottles
-    routines = Object.assign({}, routines, {
+    routines = _.assign({}, routines, {
       sendSmsNotification: cb => sendSmsNotification({ config }, cb),
       setSentSmsNotificationFlag: ['sendSmsNotification', (__, cb) => setSentSmsNotificationFlag(cb)],
     });
