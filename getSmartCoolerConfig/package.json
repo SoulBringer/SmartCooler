@@ -1,0 +1,14 @@
+{
+  "name": "get-smart-cooler-config",
+  "version": "1.0.0",
+  "description": "part of smart cooler",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Taras Tymoshchuk",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.94.0"
+  }
+}
