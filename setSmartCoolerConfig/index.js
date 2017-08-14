@@ -10,22 +10,21 @@ function handler(event, context, next) {
     const params = {
         TableName: table,
         Key:{
-            "id": "0",
-        }
+            "id": "1"
+        },
+        UpdateExpression: 'set bottlesLeft = :bottlesLeft',
+        ExpressionAttributeValues: {
+            ':bottlesLeft': value
+        },
+        ReturnValues:"UPDATED_NEW"
     };
 
-    return docClient.get(params, (err, data) => {
+    return docClient.update(params, (err, data) => {
         if (err) {
-            console.error("Unable to read item. Error JSON:", JSON.stringify(err, null, 2));
+            console.error("Unable to update item. Error JSON:", JSON.stringify(err, null, 2));
             return next(err);
         }
-
-        const config = data && data.Item && data.Item.value;
-    if (!config) {
-        return next('Config is empty');
-    }
-    console.log('Config:', JSON.stringify(config));
-
-    next(null, config);
+        console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+    return next();
 });
 }
