@@ -33,7 +33,7 @@ function getConfig(cb) {
       return cb(err);
     }
 
-    const config = data && data.Item && data.Item.value;
+    const config = data && data.Item && data.Item.payload;
     if (!config) {
       return cb('Config is empty');
     }
@@ -137,7 +137,7 @@ function refreshStock({ config }, cb) { // we got order, put one to cooler and p
   return changeStock(config.BOTTLES_TO_ORDER - 1, cb);
 }
 
-function changeStock(value, cb) {
+function changeStock(payload, cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
   const table = "smart_cooler_state";
@@ -149,7 +149,7 @@ function changeStock(value, cb) {
     },
     UpdateExpression: 'set bottlesLeft = :bottlesLeft',
     ExpressionAttributeValues: {
-      ':bottlesLeft': value
+      ':bottlesLeft': payload
     },
     ReturnValues:"UPDATED_NEW"
   };
@@ -249,7 +249,7 @@ function resetSentSlackNotificationFlag(cb) {
   return changeSentSlackNotificationFlag(false, cb);
 }
 
-function changeSentSmsNotificationFlag(value, cb) {
+function changeSentSmsNotificationFlag(payload, cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
   const table = "smart_cooler_state";
@@ -261,7 +261,7 @@ function changeSentSmsNotificationFlag(value, cb) {
     },
     UpdateExpression: 'set smsNotificationFlag = :smsNotificationFlag',
     ExpressionAttributeValues: {
-      ':smsNotificationFlag': value,
+      ':smsNotificationFlag': payload,
     },
     ReturnValues:"UPDATED_NEW"
   };
@@ -276,7 +276,7 @@ function changeSentSmsNotificationFlag(value, cb) {
   });
 }
 
-function changeSentSlackNotificationFlag(value, cb) {
+function changeSentSlackNotificationFlag(payload, cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
   const table = "smart_cooler_state";
@@ -288,7 +288,7 @@ function changeSentSlackNotificationFlag(value, cb) {
     },
     UpdateExpression: 'set slackNotificationFlag = :slackNotificationFlag',
     ExpressionAttributeValues: {
-      ':slackNotificationFlag': value,
+      ':slackNotificationFlag': payload,
     },
     ReturnValues:"UPDATED_NEW"
   };

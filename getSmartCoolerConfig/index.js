@@ -29,7 +29,7 @@ function handler(event, context, next) {
             return next(err);
         }
 
-        const config = data && data.Item && data.Item.value;
+        const config = data && data.Item && data.Item.payload;
     if (!config) {
         return done('Config is empty' + err);
     }
