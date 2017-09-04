@@ -130,9 +130,7 @@ function checkState({ config, stateOne, stateTwo }, next) {
 
   console.log('Routines:', Object.keys(routines));
 
-  next();
-
-  // return async.auto(routines, next);
+  return async.auto(routines, next);
 }
 
 function refreshStock({ config }, cb) { // we got order, put one to cooler and put others to stock
