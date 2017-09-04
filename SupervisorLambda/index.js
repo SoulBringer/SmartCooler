@@ -100,7 +100,7 @@ function checkState({ config, stateOne, stateTwo }, next) {
 
   let routines = {};
 
-  if (waterLvl >= 90 && stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we got new order and put new bottle
+  if (waterLvl >= 90 && stateTwo.smsNotificationFlag && stateTwo.bottlesLeft <= 0) { // when we got new order and put new bottle
     routines = _.assign({}, routines, {
       refreshStock: cb => refreshStock({ config }, cb),
       resetSentSmsNotificationFlag,
@@ -121,7 +121,7 @@ function checkState({ config, stateOne, stateTwo }, next) {
     });
   }
 
-  if (waterLvl <= config.BOTTLE_LEVEL_TO_NOTIFY_SMS && !stateTwo.smsNotificationFlag && !stateTwo.bottlesLeft) { // when we need to order new bottles
+  if (waterLvl <= config.BOTTLE_LEVEL_TO_NOTIFY_SMS && !stateTwo.smsNotificationFlag && stateTwo.bottlesLeft <= 0) { // when we need to order new bottles
     routines = _.assign({}, routines, {
       sendSmsNotification: cb => sendSmsNotification({ config }, cb),
       setSentSmsNotificationFlag: ['sendSmsNotification', (__, cb) => setSentSmsNotificationFlag(cb)],
