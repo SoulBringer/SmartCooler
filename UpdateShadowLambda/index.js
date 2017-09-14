@@ -1,6 +1,7 @@
 const AWS = require('aws-sdk');
 
 function getState(cb) {
+  AWS.config.update({region: 'eu-west-1'});
   const lambda = new AWS.Lambda();
   const params = {
     FunctionName: 'arn:aws:lambda:eu-west-1:091953829232:function:getSmartCoolerState',
