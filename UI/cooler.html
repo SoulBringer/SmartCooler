@@ -1,51 +1,53 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
-	</head>
 
-	<body>
-		<div ng-app="myApp" ng-controller="coolerCtrl"> 
-			<div class="container">
-				<div class="row">
-					<div class="col-md-4 col-md-offset-4">
-						<div class="panel panel-primary">
-							<div class="panel-heading">
-								<h1 class="text-center">Smart cooler stats</h1><br>
-							</div>
-							<div class="panel-body">
-								<h3>Temp sensor 1: {{temp1}}&#x2103</h3><br>
-								<h3>Temp sensor 2: {{temp2}}&#x2103</h3><br>
-								<h3>Water level: {{weight}}%</h3><br>
-							</div>
+<head>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+</head>
+
+<body>
+	<div ng-app="myApp" ng-controller="coolerCtrl">
+		<div class="container">
+			<div class="row">
+				<div class="col-md-4 col-md-offset-4">
+					<div class="panel panel-primary">
+						<div class="panel-heading">
+							<h1 class="text-center">Smart cooler stats</h1><br>
+						</div>
+						<div class="panel-body">
+							<h3>Temp sensor 1: {{temp1}}&#x2103</h3><br>
+							<h3>Temp sensor 2: {{temp2}}&#x2103</h3><br>
+							<h3>Water level: {{weight}}%</h3><br>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
+	</div>
 
-		<script>
-			var app = angular.module('myApp', []);
-			app.controller('coolerCtrl', function($scope, $http, $timeout) {
-				$scope.getData = function() {
-					$http.get('https://fkgcx8b7kd.execute-api.eu-west-1.amazonaws.com/prod/getSmartCoolerState').then(function(response) {
-						$scope.temp1 = response.data.temp1;
-						$scope.temp2 = response.data.temp2;
-						$scope.weight = response.data.weight;
-					});
-				}
-				$scope.getData();
+	<script>
+		var app = angular.module('myApp', []);
+		app.controller('coolerCtrl', function ($scope, $http, $timeout) {
+			$scope.getData = function () {
+				$http.get('https://fkgcx8b7kd.execute-api.eu-west-1.amazonaws.com/prod/getSmartCoolerState').then(function (response) {
+					$scope.temp1 = response.data.temp1;
+					$scope.temp2 = response.data.temp2;
+					$scope.weight = response.data.weight;
+				});
+			}
+			$scope.getData();
 
-				$scope.intervalFunction = function() {
-					$timeout(function() {
-						$scope.getData();
-						$scope.intervalFunction();
-					}, 10000)
-				};
-				$scope.intervalFunction();				
-			});
-		</script>
-	</body>
+			$scope.intervalFunction = function () {
+				$timeout(function () {
+					$scope.getData();
+					$scope.intervalFunction();
+				}, 10000)
+			};
+			$scope.intervalFunction();
+		});
+	</script>
+</body>
+
 </html>

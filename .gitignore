@@ -1,1 +1,5 @@
 .idea
+.vscode
+**/node_modules/**
+**.zip
+**/test-event.json

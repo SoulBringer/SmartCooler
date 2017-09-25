@@ -1,0 +1,9 @@
+{
+    "Records": [
+        {
+            "Sns": {
+                "Message": "{\"message\": \"Привіт! це лямбда кулера!\", \"slackUrl\": \"https://hooks.slack.com/services/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\"}"
+            }
+        }
+    ]
+}

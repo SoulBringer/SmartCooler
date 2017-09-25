@@ -1,7 +1,14 @@
 from __future__ import print_function
 
-import boto3
 import json
+import os
+import boto3
+
+"""
+State table's logical name
+"""
+STATE_TABLE_NAME = "-".join([os.environ["STACK_NAME"],
+                             "StateTable", os.environ["STAGE_NAME"]])
 
 
 def respond(err, res=None):
@@ -11,27 +18,23 @@ def respond(err, res=None):
         'headers': {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
-        },
+        }
     }
 
 
 def lambda_handler(event, context):
     #print("Received event: " + json.dumps(event, indent=2))
+    # print(event, context)
+    table = boto3.resource('dynamodb').Table(STATE_TABLE_NAME)
+    response = table.get_item(Key={'id': 0})
+    print(response)
+    item = response['Item']['payload']
 
-    operation = event['httpMethod']
-    if (operation == 'GET'):
-        table = boto3.resource('dynamodb').Table('smart_cooler_state')
-        response = table.get_item(Key={'id': '0'})
-        item = response['Item']['payload']
+    # print(item)
 
-        #print(item)
-
-        response = {
-            'temp1': int(item['temp1']),
-            'temp2': int(item['temp2']),
-            'weight': ('%.2f' % ((float(item['weight']) - 260000) / 425000 * 100))
-        }
-        return respond(None, response)
-
-    return respond(ValueError('Unsupported method "{}"'.format(operation)))
-    
+    response = {
+        'temp1': int(item['temp1']),
+        'temp2': int(item['temp2']),
+        'weight': ('%.2f' % ((float(item['weight']) - 260000) / 425000 * 100))
+    }
+    return respond(None, response)

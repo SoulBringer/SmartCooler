@@ -1,12 +1,18 @@
 {
-  "name": "get-smart-cooler-config",
-  "version": "1.0.0",
+  "name": "set-smart-cooler-config",
+  "version": "1.1.10",
   "description": "part of smart cooler",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Taras Tymoshchuk",
+  "contributors": [
+    {
+      "name": "Vitalii Perehonchuk",
+      "email": "vitalii.perehonchuk@eliftech.com"
+    }
+  ],
   "license": "ISC",
   "dependencies": {
     "aws-sdk": "^2.94.0"

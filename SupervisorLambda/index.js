@@ -1,57 +1,92 @@
-const async = require('async');
-const AWS = require('aws-sdk');
 const _ = require('lodash');
+/**
+ * Account ID
+ * @type {Number}
+ */
+const ASYNC = require('async');
+const AWS = require('aws-sdk');
+const CONFIG_TABLE_NAME = [
+  process.env.STACK_NAME,
+  "ConfigTable",
+  process.env.STAGE_NAME
+]
+  .join("-");
+const DYNAMODB = new AWS.DynamoDB();
+const IAM = new AWS.IAM();
+const METADATA = new AWS.MetadataService();
+const SLACK_TOPIC_ARN = [
+  "arn",
+  "aws",
+  "sns",
+  process.env.REGION,
+  process.env.ACCOUNT_ID,
+  "SlackTopic"
+].join(":");
+const SMS_TOPIC_ARN = [
+  "arn",
+  "aws",
+  "sns",
+  process.env.REGION,
+  process.env.ACCOUNT_ID,
+  "SmsTopic"
+].join(":");
+const SNS = new AWS.SNS();
+const STATE_TABLE_NAME = [
+  process.env.STACK_NAME,
+  "StateTable",
+  process.env.STAGE_NAME
+]
+  .join("-");
 
 exports.handler = handler;
 
 function handler(event, context, next) {
-  async.auto({
-    config: getConfig,
-    stateOne: getStateOne,
-    stateTwo: getStateTwo,
+  ASYNC.auto({
+    config: [getConfig],
+    stateOne: [getStateOne],
+    stateTwo: [getStateTwo],
     checkState: ['config', 'stateOne', 'stateTwo', checkState],
   }, (err, data) => {
     next(err, data);
   })
 }
-
-function getConfig(cb) {
+function getConfig(callback) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
-  const table = "smart_cooler_config";
+  // const table = "smart_cooler_config";
 
   const params = {
-    TableName: table,
-    Key:{
-      "id": "0",
+    TableName: CONFIG_TABLE_NAME,
+    Key: {
+      "id": 0,
     }
   };
 
   return docClient.get(params, (err, data) => {
     if (err) {
       console.error("Unable to read item. Error JSON:", JSON.stringify(err, null, 2));
-      return cb(err);
+      return callback(err);
     }
 
     const config = data && data.Item && data.Item.payload;
     if (!config) {
-      return cb('Config is empty');
+      return callback('Config is empty');
     }
     console.log('Config:', JSON.stringify(config));
 
-    cb(null, config);
+    callback(null, config);
   });
 }
 
 function getStateOne(cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
-  const table = "smart_cooler_state";
+  // const table = "smart_cooler_state";
 
   const params = {
-    TableName: table,
-    Key:{
-      "id": "0",
+    TableName: STATE_TABLE_NAME,
+    Key: {
+      "id": 0,
     }
   };
 
@@ -71,12 +106,12 @@ function getStateOne(cb) {
 function getStateTwo(cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
-  const table = "smart_cooler_state";
+  // const table = "smart_cooler_state";
 
   const params = {
-    TableName: table,
-    Key:{
-      "id": "1",
+    TableName: STATE_TABLE_NAME,
+    Key: {
+      "id": 1,
     }
   };
 
@@ -94,7 +129,7 @@ function getStateTwo(cb) {
 }
 
 function checkState({ config, stateOne, stateTwo }, next) {
-  const waterLvl =  (stateOne.weight - config.EMPTY_BOTTLE) / config.FULL_BOTTLE * 100;
+  const waterLvl = (stateOne.weight - config.EMPTY_BOTTLE) / config.FULL_BOTTLE * 100;
 
   console.log('waterLvl:', waterLvl);
 
@@ -130,7 +165,7 @@ function checkState({ config, stateOne, stateTwo }, next) {
 
   console.log('Routines:', Object.keys(routines));
 
-  return async.auto(routines, next);
+  return ASYNC.auto(routines, next);
 }
 
 function refreshStock({ config }, cb) { // we got order, put one to cooler and put others to stock
@@ -140,18 +175,18 @@ function refreshStock({ config }, cb) { // we got order, put one to cooler and p
 function changeStock(payload, cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
-  const table = "smart_cooler_state";
+  // const table = "smart_cooler_state";
 
   const params = {
-    TableName: table,
-    Key:{
-      "id": "1",
+    TableName: STATE_TABLE_NAME,
+    Key: {
+      "id": 1,
     },
     UpdateExpression: 'set bottlesLeft = :bottlesLeft',
     ExpressionAttributeValues: {
       ':bottlesLeft': payload
     },
-    ReturnValues:"UPDATED_NEW"
+    ReturnValues: "UPDATED_NEW"
   };
 
   return docClient.update(params, (err, data) => {
@@ -187,7 +222,7 @@ function sendSmsNotification({ config }, cb) { // send notification to sns
   sns.publish({
     Message: payload,
     MessageStructure: 'json',
-    TargetArn: 'arn:aws:sns:eu-west-1:091953829232:smsNotification'
+    TargetArn: SMS_TOPIC_ARN
   }, (err, data) => {
     if (err) {
       console.log(err.stack);
@@ -220,7 +255,7 @@ function sendSlackNotification({ config }, cb) { // send notification to sns
     Message: payload,
     Subject: config.SLACK_MESSAGE,
     MessageStructure: 'json',
-    TargetArn: 'arn:aws:sns:eu-west-1:091953829232:slackNotiffication'
+    TargetArn: SLACK_TOPIC_ARN
   }, (err, data) => {
     if (err) {
       console.log(err.stack);
@@ -252,18 +287,18 @@ function resetSentSlackNotificationFlag(cb) {
 function changeSentSmsNotificationFlag(payload, cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
-  const table = "smart_cooler_state";
+  // const table = "smart_cooler_state";
 
   const params = {
-    TableName: table,
-    Key:{
-      "id": "1",
+    TableName: STATE_TABLE_NAME,
+    Key: {
+      "id": 1,
     },
     UpdateExpression: 'set smsNotificationFlag = :smsNotificationFlag',
     ExpressionAttributeValues: {
       ':smsNotificationFlag': payload,
     },
-    ReturnValues:"UPDATED_NEW"
+    ReturnValues: "UPDATED_NEW"
   };
 
   return docClient.update(params, (err, data) => {
@@ -279,18 +314,18 @@ function changeSentSmsNotificationFlag(payload, cb) {
 function changeSentSlackNotificationFlag(payload, cb) {
   const docClient = new AWS.DynamoDB.DocumentClient();
 
-  const table = "smart_cooler_state";
+  // const table = "smart_cooler_state";
 
   const params = {
-    TableName: table,
-    Key:{
-      "id": "1",
+    TableName: STATE_TABLE_NAME,
+    Key: {
+      "id": 1,
     },
     UpdateExpression: 'set slackNotificationFlag = :slackNotificationFlag',
     ExpressionAttributeValues: {
       ':slackNotificationFlag': payload,
     },
-    ReturnValues:"UPDATED_NEW"
+    ReturnValues: "UPDATED_NEW"
   };
 
   return docClient.update(params, (err, data) => {

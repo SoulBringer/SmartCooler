@@ -1,0 +1,1 @@
+zip -r SuperviseFunction.zip index.js package.json package-lock.json node_modules

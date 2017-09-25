@@ -5,6 +5,12 @@ const AWS = require('aws-sdk');
  * @type {AWS.DynamoDB}
  */
 const dynamodb = new AWS.DynamoDB();
+const CONFIG_TABLE_NAME = [
+    process.env.STACK_NAME,
+    "ConfigTable",
+    process.env.STAGE_NAME
+]
+    .join("-");
 exports.handler = handler;
 
 function handler(event, context, next) {
@@ -19,74 +25,39 @@ function handler(event, context, next) {
         }
     });
     /**
-     * fetches the config's table name
-     * 
+     * Fetches config data
      * @return {Promise}
      */
-    function fetchTableName() {
-        let promise = new Promise();
+    function fetchConfigData() {
+        return new Promise((resolve, reject) => {
+            docClient.get({
+                TableName: CONFIG_TABLE_NAME,
+                Key: {
+                    "id": 0
+                }
+            }, (err, data) => {
+                if (err) {
+                    console.log("Unable to read item. Error JSON:", JSON.stringify(err, null, 2));
+                    reject(err);
+                }
 
-        dynamodb.listTables({}, (error, data) => {
-            if (error) {
-                console.error(error, error.stack);
-                promise.reject();
-            }
-            else {
-                /**
-                 * A variable for an index of the config table in the array of tables' names.
-                 * 
-                 * @type {Number}
-                 */
-                let table_index = data["TableNames"].find(isConfigTableName);
-                if (table_index === -1) {
-                    console.error("ConfigTable not found.");
-                    promise.reject();
+                const config = data && data.Item && data.Item.payload;
+                if (!config) {
+                    console.log('Config is empty', err);
+                    reject(err);
                 }
-                else {
-                    table = data["TableNames"][table_index];
-                    promise.resolve();
-                }
-            }
+                console.log('Config:', JSON.stringify(config));
+
+                resolve(config);
+            })
         });
-        return promise;
-
     }
-    /**
-     * The variable for the certain name of the config table in DynamoDB.
-     * 
-     * @type {String}
-     */
-    let table = undefined;
+    fetchConfigData()
+        .then((config) => {
+            done(null, config);
+        })
+        .catch((error) => {
+            done(error, null);
+        });
 
-    const params = {
-        TableName: table,
-        Key: {
-            "id": "0"
-        }
-    };
-
-    return docClient.get(params, (err, data) => {
-        if (err) {
-            console.error("Unable to read item. Error JSON:", JSON.stringify(err, null, 2));
-            return next(err);
-        }
-
-        const config = data && data.Item && data.Item.payload;
-        if (!config) {
-            return done('Config is empty' + err);
-        }
-        console.log('Config:', JSON.stringify(config));
-
-        done(null, config);
-    });
-}
-
-/**
- * Checks whether a a table is the config table.
- * 
- * @param {String} tableName 
- * @returns {Boolean}
- */
-function isConfigTableName(tableName) {
-    return tableName.indexOf("ConfigTable") !== -1;
 }

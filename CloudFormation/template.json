@@ -1,13 +1,164 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
+        "StageName": {
+            "Type": "String",
+            "Default": "Dev",
+            "Description": "Name of the environment."
+        },
         "S3BucketName": {
             "Type": "String",
-            "Default": "smartcoolermisc",
+            "Default": "smartcooler",
             "Description": "Name of the S3 Bucket where the static files and the deployment packages are stored."
         }
     },
     "Resources": {
+        "ApiGatewayAccount": {
+            "Type": "AWS::ApiGateway::Account",
+            "Properties": {
+                "CloudWatchRoleArn": {
+                    "Fn::GetAtt": [
+                        "ApiGatewayCloudWatchLogsRole",
+                        "Arn"
+                    ]
+                }
+            }
+        },
+        "ApiGatewayCloudWatchLogsRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "apigateway.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "ApiGatewayLogsPolicy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:DescribeLogGroups",
+                                        "logs:DescribeLogStreams",
+                                        "logs:PutLogEvents",
+                                        "logs:GetLogEvents",
+                                        "logs:FilterLogEvents"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "ApiKey": {
+            "Properties": {
+                "Enabled": true,
+                "Name": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ApiKey",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
+                "StageKeys": [
+                    {
+                        "RestApiId": {
+                            "Ref": "ConfigGetApi"
+                        },
+                        "StageName": "LATEST"
+                    },
+                    {
+                        "RestApiId": {
+                            "Ref": "ConfigSetApi"
+                        },
+                        "StageName": "LATEST"
+                    },
+                    {
+                        "RestApiId": {
+                            "Ref": "StateApi"
+                        },
+                        "StageName": "LATEST"
+                    }
+                ]
+            },
+            "Type": "AWS::ApiGateway::ApiKey"
+        },
+        "ApiUsagePlan": {
+            "Properties": {
+                "ApiStages": [
+                    {
+                        "ApiId": {
+                            "Ref": "ConfigGetApi"
+                        },
+                        "Stage": "LATEST"
+                    },
+                    {
+                        "ApiId": {
+                            "Ref": "ConfigSetApi"
+                        },
+                        "Stage": "LATEST"
+                    },
+                    {
+                        "ApiId": {
+                            "Ref": "StateApi"
+                        },
+                        "Stage": "LATEST"
+                    }
+                ],
+                "UsagePlanName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "UsagePlan",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
+            },
+            "Type": "AWS::ApiGateway::UsagePlan"
+        },
+        "ApiUsagePlanKey": {
+            "Properties": {
+                "KeyId": {
+                    "Ref": "ApiKey"
+                },
+                "KeyType": "API_KEY",
+                "UsagePlanId": {
+                    "Ref": "ApiUsagePlan"
+                }
+            },
+            "Type": "AWS::ApiGateway::UsagePlanKey"
+        },
         "ConfigGetApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
@@ -33,9 +184,33 @@
                     "S3Bucket": {
                         "Ref": "S3BucketName"
                     },
-                    "S3Key": "getSmartCoolerConfig-1e21d78b-f6e0-46c1-a17f-7628958d0fb7.zip"
+                    "S3Key": "ConfigGetFunction2.zip"
                 },
                 "Description": "Returns config from Dynamo",
+                "Environment": {
+                    "Variables": {
+                        "STAGE_NAME": {
+                            "Ref": "StageName"
+                        },
+                        "STACK_NAME": {
+                            "Ref": "AWS::StackName"
+                        }
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ConfigGetFunction",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
                 "Handler": "index.handler",
                 "Role": {
                     "Fn::GetAtt": [
@@ -60,7 +235,7 @@
                 "AuthorizationType": "NONE",
                 "HttpMethod": "GET",
                 "Integration": {
-                    "IntegrationHttpMethod": "GET",
+                    "IntegrationHttpMethod": "POST",
                     "IntegrationResponses": [
                         {
                             "StatusCode": 200
@@ -149,6 +324,7 @@
         },
         "ConfigGetStage": {
             "DependsOn": [
+                "ApiGatewayAccount",
                 "ConfigGetApi",
                 "ConfigGetDeployment"
             ],
@@ -158,7 +334,9 @@
                 },
                 "MethodSettings": [
                     {
+                        "DataTraceEnabled": true,
                         "HttpMethod": "*",
+                        "LoggingLevel": "INFO",
                         "ResourcePath": "/*"
                     }
                 ],
@@ -199,7 +377,8 @@
                                 {
                                     "Sid": "Stmt1502715943477",
                                     "Action": [
-                                        "dynamodb:GetItem"
+                                        "dynamodb:GetItem",
+                                        "dynamodb:ListTables"
                                     ],
                                     "Effect": "Allow",
                                     "Resource": {
@@ -213,7 +392,21 @@
                         },
                         "PolicyName": "ConfigGetting"
                     }
-                ]
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ConfigGetRole",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
             },
             "DependsOn": [
                 "ConfigTable"
@@ -244,9 +437,33 @@
                     "S3Bucket": {
                         "Ref": "S3BucketName"
                     },
-                    "S3Key": "setSmartCoolerConfig-9148d8c7-10b1-4ca5-a924-a222a3a3379e.zip"
+                    "S3Key": "ConfigSetFunction.zip"
                 },
                 "Description": "",
+                "Environment": {
+                    "Variables": {
+                        "STAGE_NAME": {
+                            "Ref": "StageName"
+                        },
+                        "STACK_NAME": {
+                            "Ref": "AWS::StackName"
+                        }
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ConfigSetFunction",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
                 "Handler": "index.handler",
                 "Role": {
                     "Fn::GetAtt": [
@@ -257,7 +474,8 @@
                 "Runtime": "nodejs6.10"
             },
             "DependsOn": [
-                "ConfigSetRole"
+                "ConfigSetRole",
+                "ConfigTable"
             ]
         },
         "ConfigSetMethod": {
@@ -269,9 +487,9 @@
             ],
             "Properties": {
                 "AuthorizationType": "NONE",
-                "HttpMethod": "GET",
+                "HttpMethod": "POST",
                 "Integration": {
-                    "IntegrationHttpMethod": "GET",
+                    "IntegrationHttpMethod": "POST",
                     "IntegrationResponses": [
                         {
                             "StatusCode": 200
@@ -351,34 +569,12 @@
                         "RootResourceId"
                     ]
                 },
-                "PathPart": "get-config",
+                "PathPart": "set-config",
                 "RestApiId": {
                     "Ref": "ConfigSetApi"
                 }
             },
             "Type": "AWS::ApiGateway::Resource"
-        },
-        "ConfigSetStage": {
-            "DependsOn": [
-                "ConfigSetApi",
-                "ConfigSetDeployment"
-            ],
-            "Properties": {
-                "DeploymentId": {
-                    "Ref": "ConfigSetDeployment"
-                },
-                "MethodSettings": [
-                    {
-                        "HttpMethod": "*",
-                        "ResourcePath": "/*"
-                    }
-                ],
-                "RestApiId": {
-                    "Ref": "ConfigSetApi"
-                },
-                "StageName": "LATEST"
-            },
-            "Type": "AWS::ApiGateway::Stage"
         },
         "ConfigSetRole": {
             "Type": "AWS::IAM::Role",
@@ -410,7 +606,7 @@
                                 {
                                     "Sid": "Stmt1502715943477",
                                     "Action": [
-                                        "dynamodb:GetItem"
+                                        "dynamodb:UpdateItem"
                                     ],
                                     "Effect": "Allow",
                                     "Resource": {
@@ -424,11 +620,50 @@
                         },
                         "PolicyName": "ConfigSetting"
                     }
-                ]
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ConfigSetRole",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
             },
             "DependsOn": [
                 "ConfigTable"
             ]
+        },
+        "ConfigSetStage": {
+            "DependsOn": [
+                "ApiGatewayAccount",
+                "ConfigSetApi",
+                "ConfigSetDeployment"
+            ],
+            "Properties": {
+                "DeploymentId": {
+                    "Ref": "ConfigSetDeployment"
+                },
+                "MethodSettings": [
+                    {
+                        "DataTraceEnabled": true,
+                        "HttpMethod": "*",
+                        "LoggingLevel": "INFO",
+                        "ResourcePath": "/*"
+                    }
+                ],
+                "RestApiId": {
+                    "Ref": "ConfigSetApi"
+                },
+                "StageName": "LATEST"
+            },
+            "Type": "AWS::ApiGateway::Stage"
         },
         "ConfigTable": {
             "Type": "AWS::DynamoDB::Table",
@@ -448,12 +683,41 @@
                 "ProvisionedThroughput": {
                     "ReadCapacityUnits": 1,
                     "WriteCapacityUnits": 1
+                },
+                "TableName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ConfigTable",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
                 }
             }
         },
         "CoolerThing": {
             "Type": "AWS::IoT::Thing",
-            "Properties": {}
+            "Properties": {
+                "ThingName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "CoolerThing",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
+            }
         },
         "CoolerCheckTopicRule": {
             "Type": "AWS::IoT::TopicRule",
@@ -520,6 +784,20 @@
                 "ProvisionedThroughput": {
                     "ReadCapacityUnits": 1,
                     "WriteCapacityUnits": 1
+                },
+                "TableName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "DataTable",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
                 }
             }
         },
@@ -571,7 +849,21 @@
                         },
                         "PolicyName": "DbAccessing"
                     }
-                ]
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "DbPutRole",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
             }
         },
         "LogRole": {
@@ -584,6 +876,7 @@
                             "Effect": "Allow",
                             "Principal": {
                                 "Service": [
+                                    "apigateway.amazonaws.com",
                                     "lambda.amazonaws.com",
                                     "logs.amazonaws.com"
                                 ]
@@ -616,7 +909,21 @@
                         },
                         "PolicyName": "LambdaExecuting"
                     }
-                ]
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "LogRole",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
             }
         },
         "SlackFunction": {
@@ -629,6 +936,30 @@
                     "S3Key": "slack-notification-95b8a82a-3a91-4e9a-be1c-3ba440cd79ee.zip"
                 },
                 "Description": "Slack Notificaiton",
+                "Environment": {
+                    "Variables": {
+                        "STAGE_NAME": {
+                            "Ref": "StageName"
+                        },
+                        "STACK_NAME": {
+                            "Ref": "AWS::StackName"
+                        }
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "SlackFunction",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
                 "Handler": "index.handler",
                 "Role": {
                     "Fn::GetAtt": [
@@ -678,6 +1009,30 @@
                     "S3Key": "sms-notification-2761af90-13ed-4043-b9c9-cd1ba564632c.zip"
                 },
                 "Description": "SMS Notification",
+                "Environment": {
+                    "Variables": {
+                        "STAGE_NAME": {
+                            "Ref": "StageName"
+                        },
+                        "STACK_NAME": {
+                            "Ref": "AWS::StackName"
+                        }
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "SmsFunction",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
                 "Handler": "twilio_functions.iot_handler",
                 "Role": {
                     "Fn::GetAtt": [
@@ -720,11 +1075,12 @@
         "StateApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-                "Name": "ConfigApi"
+                "Name": "StateApi"
             }
         },
         "StateDeployment": {
             "DependsOn": [
+                "StateApi",
                 "StateMethod"
             ],
             "Properties": {
@@ -738,12 +1094,36 @@
         "StateFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
-                "Handler": "lambda_function.lambda_handler",
+                "Environment": {
+                    "Variables": {
+                        "STAGE_NAME": {
+                            "Ref": "StageName"
+                        },
+                        "STACK_NAME": {
+                            "Ref": "AWS::StackName"
+                        }
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "StateFunction",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
+                "Handler": "get_current_state.lambda_handler",
                 "Code": {
                     "S3Bucket": {
                         "Ref": "S3BucketName"
                     },
-                    "S3Key": "processSmartCoolerState-17e35557-ea65-46ca-9c51-f5383f492065.zip"
+                    "S3Key": "StateFunction2.zip"
                 },
                 "Role": {
                     "Fn::GetAtt": [
@@ -754,7 +1134,8 @@
                 "Runtime": "python2.7"
             },
             "DependsOn": [
-                "StateRole"
+                "StateRole",
+                "StateTable"
             ]
         },
         "StateMethod": {
@@ -768,7 +1149,7 @@
                 "AuthorizationType": "NONE",
                 "HttpMethod": "GET",
                 "Integration": {
-                    "IntegrationHttpMethod": "GET",
+                    "IntegrationHttpMethod": "POST",
                     "IntegrationResponses": [
                         {
                             "StatusCode": 200
@@ -848,7 +1229,7 @@
                         "RootResourceId"
                     ]
                 },
-                "PathPart": "get-config",
+                "PathPart": "get-state",
                 "RestApiId": {
                     "Ref": "StateApi"
                 }
@@ -857,6 +1238,7 @@
         },
         "StateStage": {
             "DependsOn": [
+                "ApiGatewayAccount",
                 "StateApi",
                 "StateDeployment"
             ],
@@ -866,7 +1248,9 @@
                 },
                 "MethodSettings": [
                     {
+                        "DataTraceEnabled": true,
                         "HttpMethod": "*",
+                        "LoggingLevel": "INFO",
                         "ResourcePath": "/*"
                     }
                 ],
@@ -950,8 +1334,39 @@
                             ]
                         },
                         "PolicyName": "SnsAccess"
+                    },
+                    {
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "lambda:ListFunctions"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ]
+                                }
+                            ]
+                        },
+                        "PolicyName": "ListFunctionsPolicy"
                     }
-                ]
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "StateRole",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
             }
         },
         "StateTable": {
@@ -972,6 +1387,20 @@
                 "ProvisionedThroughput": {
                     "ReadCapacityUnits": 1,
                     "WriteCapacityUnits": 1
+                },
+                "TableName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "StateTable",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
                 }
             }
         },
@@ -979,12 +1408,42 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
                 "Description": "SuperviseRole",
+                "Environment": {
+                    "Variables": {
+                        "ACCOUNT_ID": {
+                            "Ref": "AWS::AccountId"
+                        },
+                        "REGION": {
+                            "Ref": "AWS::Region"
+                        },
+                        "STAGE_NAME": {
+                            "Ref": "StageName"
+                        },
+                        "STACK_NAME": {
+                            "Ref": "AWS::StackName"
+                        }
+                    }
+                },
+                "FunctionName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "SuperviseFunction",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                },
                 "Handler": "index.handler",
                 "Code": {
                     "S3Bucket": {
                         "Ref": "S3BucketName"
                     },
-                    "S3Key": "supervisor-d6924748-264a-47cd-8664-422cc7bcc6d5.zip"
+                    "S3Key": "SuperviseFunction.zip"
                 },
                 "Role": {
                     "Fn::GetAtt": [
@@ -996,9 +1455,10 @@
             },
             "DependsOn": [
                 "ConfigTable",
-                "SlackFunction",
-                "SmsFunction",
-                "StateTable"
+                "SlackTopic",
+                "SmsTopic",
+                "StateTable",
+                "SuperviseRole"
             ]
         },
         "SuperviseRole": {
@@ -1097,12 +1557,33 @@
                                             ]
                                         }
                                     ]
+                                },
+                                {
+                                    "Action": [
+                                        "iam:GetUser"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
                                 }
                             ]
                         },
                         "PolicyName": "SupervisingPolicy"
                     }
-                ]
+                ],
+                "RoleName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "SuperviseRole",
+                            {
+                                "Ref": "StageName"
+                            }
+                        ]
+                    ]
+                }
             },
             "DependsOn": [
                 "ConfigTable",
